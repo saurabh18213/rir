@@ -178,6 +178,7 @@ void Constantfold::apply(RirCompiler& cmp, ClosureVersion* function,
                                         p->addInput(pred, False::instance());
                                     } else {
                                         success = false;
+                                        assert(false && "could not place phi.");
                                     }
                                 }
 
