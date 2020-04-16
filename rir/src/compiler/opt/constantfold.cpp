@@ -641,12 +641,7 @@ bool Constantfold::apply(RirCompiler& cmp, ClosureVersion* function,
                     auto rhs = colonInputEffects->arg<1>().val();
                     auto notFactor = !lhs->type.maybeHasAttrs() ||
                                      !rhs->type.maybeHasAttrs();
-                    // TODO this condition needs to go! see isColonFastcase in
-                    // interp.cpp
-                    auto cannotCauseCoercionProblems =
-                        !lhs->type.maybe(PirType::num()) ||
-                        !rhs->type.maybe(PirType::num());
-                    if (notFactor && cannotCauseCoercionProblems) {
+                    if (notFactor) {
                         colonInputEffects->replaceUsesWith(True::instance());
                         anyChange = true;
                     }

@@ -33,6 +33,9 @@
     V(NESTED, xlength_, xlength)                                               \
     V(NESTED, inc, inc)                                                        \
     V(NESTED, close, close)                                                    \
+    V(NESTED, addOverflow, add_overflow)                                       \
+    V(NESTED, neOverflow, ne_overflow)                                         \
+    V(NESTED, leOverflow, le_overflow)                                         \
     V(NESTED, add, add)                                                        \
     V(NESTED, mul, mul)                                                        \
     V(NESTED, div, div)                                                        \

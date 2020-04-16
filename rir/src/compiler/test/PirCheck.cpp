@@ -118,6 +118,11 @@ static bool testNoEq(ClosureVersion* f) {
                           [&](Instruction* i) { return !Eq::Cast(i); });
 }
 
+static bool testNoAdd(ClosureVersion* f) {
+    return Visitor::check(f->entry,
+                          [&](Instruction* i) { return !Add::Cast(i); });
+}
+
 static bool testOneEq(ClosureVersion* f) {
     int numEqs = 0;
     Visitor::run(f->entry, [&](Instruction* i) {
@@ -209,15 +214,6 @@ static bool testEagerCallArgs(ClosureVersion* f) {
             });
         }
     }
-    return success;
-}
-
-static bool testAnAddIsNotNAOrNaN(ClosureVersion* f) {
-    bool success = false;
-    Visitor::run(f->entry, [&](Instruction* i) {
-        if (Add::Cast(i) && !i->type.maybeNAOrNaN())
-            success = true;
-    });
     return success;
 }
 

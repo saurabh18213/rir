@@ -469,6 +469,6 @@ emptyFor <- function(n) {
     
   }
 }
-stopifnot(pir.check(emptyFor, OneAdd, AnAddIsNotNAOrNaN, warmup=function(f) {f(1000)}))
+stopifnot(pir.check(emptyFor, NoAdd, warmup=function(f) {f(1000)}))
 arg <- 1000
-stopifnot(pir.check(emptyFor, OneAdd, AnAddIsNotNAOrNaN, warmup=function(f) {f(arg)}))
+stopifnot(pir.check(emptyFor, NoAdd, warmup=function(f) {f(arg)}))

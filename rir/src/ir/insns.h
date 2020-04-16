@@ -281,6 +281,24 @@ DEF_INSTR(pick_, 1, 0, 0, 1)
 DEF_INSTR(pull_, 1, 0, 1, 1)
 
 /**
+ * add_overflow_:: add_ but expects SEXPs to be int or real and allows them to
+ * overflow.
+ */
+DEF_INSTR(add_overflow_, 0, 2, 1, 0)
+
+/**
+ * ne_overflow_:: ne_ but expects SEXPs to be int or real and compares NA
+ * directly
+ */
+DEF_INSTR(ne_overflow_, 0, 2, 1, 0)
+
+/**
+ * le_overflow_:: ne_ but expects SEXPs to be int or real and compares NA
+ * directly
+ */
+DEF_INSTR(le_overflow_, 0, 2, 1, 0)
+
+/**
  * add_:: pop two values from object stack, add them, push result on object
  * stack. Works on any SEXP.
  */

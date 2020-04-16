@@ -330,7 +330,7 @@ bool compileSimpleFor(CompilerContext& ctx, SEXP fullAst, SEXP sym, SEXP seq,
             cs << BC::colonCastRhs() << BC::ensureNamed() << BC::recordType();
 
             // step <- if (m' <= n') 1L else -1L
-            cs << BC::dup2() << BC::le();
+            cs << BC::dup2() << BC::leOverflow();
             cs.addSrc(R_NilValue);
             cs << BC::recordTest() << BC::brfalse(stepElseBranch) << BC::push(1)
                << BC::br(stepEndBranch) << stepElseBranch << BC::push(-1)
@@ -345,7 +345,7 @@ bool compileSimpleFor(CompilerContext& ctx, SEXP fullAst, SEXP sym, SEXP seq,
                 ctx,
                 [&cs]() {
                     // (i' != n')
-                    cs << BC::dup2() << BC::ne();
+                    cs << BC::dup2() << BC::neOverflow();
                     cs.addSrc(R_NilValue);
                 },
                 [&ctx, &cs, &sym, &body]() {
@@ -358,7 +358,7 @@ bool compileSimpleFor(CompilerContext& ctx, SEXP fullAst, SEXP sym, SEXP seq,
                     else
                         cs << BC::stvar(sym);
                     // i' <- i' + step
-                    cs << BC::pull(2) << BC::ensureNamed() << BC::add();
+                    cs << BC::pull(2) << BC::ensureNamed() << BC::addOverflow();
                     cs.addSrc(R_NilValue);
                     // ...
                     compileExpr(ctx, body, true);

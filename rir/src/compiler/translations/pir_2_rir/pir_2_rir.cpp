@@ -833,6 +833,9 @@ rir::Code* Pir2Rir::compileCode(Context& ctx, Code* code) {
         cb.add(BC::Factory(), instr->srcIdx);                                  \
         break;                                                                 \
     }
+                SIMPLE_WITH_SRCIDX(AddOverflow, addOverflow);
+                SIMPLE_WITH_SRCIDX(NeqOverflow, neOverflow);
+                SIMPLE_WITH_SRCIDX(LteOverflow, leOverflow);
                 SIMPLE_WITH_SRCIDX(Add, add);
                 SIMPLE_WITH_SRCIDX(Sub, sub);
                 SIMPLE_WITH_SRCIDX(Mul, mul);

@@ -361,7 +361,8 @@ class Instruction : public Value {
             // * the condition checks iff at least one of the arguments is an
             // integer (doesn't happen with only logicals), and the result is an
             // integer (doesn't happen with real coercion)
-            if (m.maybe(RType::integer) && t.maybe(RType::integer))
+            if (m.maybe(RType::integer) && t.maybe(RType::integer) &&
+                tag != Tag::AddOverflow)
                 t.setMaybeNAOrNaN();
             return type & t;
         }
@@ -1676,6 +1677,7 @@ class ArithmeticBinop : public Binop<BASE, TAG> {
             : ArithmeticBinop<Kind, Tag::Kind>(lhs, rhs, env, srcIdx) {}       \
     }
 
+ARITHMETIC_BINOP(AddOverflow);
 ARITHMETIC_BINOP(Mul);
 ARITHMETIC_BINOP(IDiv);
 ARITHMETIC_BINOP(Add);
@@ -1733,6 +1735,8 @@ class LogicalBinop : public Binop<BASE, TAG> {
             : LogicalBinop<Kind, Tag::Kind>(lhs, rhs, env, srcIdx) {}          \
     }
 
+LOGICAL_BINOP(NeqOverflow);
+LOGICAL_BINOP(LteOverflow);
 LOGICAL_BINOP(Gte);
 LOGICAL_BINOP(Gt);
 LOGICAL_BINOP(Lte);

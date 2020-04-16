@@ -8,6 +8,9 @@
 #define V_SIMPLE_INSTRUCTION_IN_COMPILER_INSTRUCTIONS(V, name, Name) V(Name)
 
 #define BINOP_INSTRUCTIONS(V)                                                  \
+    V(AddOverflow)                                                             \
+    V(NeqOverflow)                                                             \
+    V(LteOverflow)                                                             \
     V(Lte)                                                                     \
     V(Gte)                                                                     \
     V(Lt)                                                                      \

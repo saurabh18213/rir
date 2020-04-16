@@ -5059,6 +5059,9 @@ bool LowerFunctionLLVM::tryCompile() {
                                {loadSxp(i->arg(0).val())}));
                 break;
 
+            case Tag::AddOverflow:
+            case Tag::NeqOverflow:
+            case Tag::LteOverflow:
             case Tag::Int3:
             case Tag::PrintInvocation:
                 success = false;

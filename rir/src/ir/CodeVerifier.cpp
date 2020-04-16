@@ -100,6 +100,9 @@ static Sources hasSources(Opcode bc) {
     case Opcode::extract2_1_:
     case Opcode::extract2_2_:
     case Opcode::extract1_3_:
+    case Opcode::add_overflow_:
+    case Opcode::ne_overflow_:
+    case Opcode::le_overflow_:
     case Opcode::add_:
     case Opcode::mul_:
     case Opcode::div_:

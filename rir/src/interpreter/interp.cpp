@@ -31,7 +31,7 @@ extern Rboolean R_Visible;
 namespace rir {
 
 // #define PRINT_INTERP
-// #define PRINT_STACK_SIZE 10
+// #define PRINT_STACK_SIZE 3
 #ifdef PRINT_INTERP
 static void printInterp(Opcode* pc, Code* c, InterpreterInstance* ctx) {
 #ifdef PRINT_STACK_SIZE
@@ -1662,61 +1662,7 @@ size_t expandDotDotDotCallArgs(InterpreterInstance* ctx, size_t n,
 }
 
 bool isColonFastcase(SEXP lhs, SEXP rhs) {
-    // In order for the fastcase 2 conditions must be met:
-    // - Either lhs or rhs must not be factors
-    // - rhs must not be coerced to INT_MIN or INT_MAX (because we expect lhs >
-    // rhs or lhs < rhs). To ensure this:
-    //   - lhs must not be a number which gets coerced into an integer
-    //   (implying, it can't be a real/complex which is integral)
-    //   - rhs must not be a number which gets coerced into INT_MIN or INT_MAX
-    //   (implying, it can't be the real/complex representation of INT_MIN or
-    //   INT_MAX)
-    if (inherits(lhs, "factor") && inherits(rhs, "factor"))
-        return false;
-
-    // TODO(o):
-    // I don't like this part of the condition. It prevents us from constant
-    // folding the colonEffects instruction. Can we do this differently?
-    if (XLENGTH(lhs) == 0 || XLENGTH(rhs) == 0)
-        return true;
-
-    switch (TYPEOF(lhs)) {
-    case INTSXP:
-    case LGLSXP:
-        break;
-    case REALSXP:
-        if (!doubleCanBeCastedToInteger(*REAL(lhs)))
-            return true;
-        break;
-    case CPLXSXP:
-        if (!doubleCanBeCastedToInteger(COMPLEX(lhs)->r))
-            return true;
-        break;
-    default:
-        break;
-    }
-
-    // This is the case where LHS might be an INTSXP
-    int coerced = 0;
-    switch (TYPEOF(rhs)) {
-    case INTSXP:
-    case LGLSXP:
-        coerced = *INTEGER(rhs);
-        break;
-    case REALSXP:
-        if (!doubleCanBeCastedToInteger(*REAL(rhs)))
-            return false;
-        coerced = (int)*REAL(rhs);
-        break;
-    case CPLXSXP:
-        if (!doubleCanBeCastedToInteger(COMPLEX(rhs)->r))
-            return false;
-        coerced = (int)COMPLEX(rhs)->r;
-        break;
-    default:
-        return true;
-    }
-    return coerced != INT_MAX;
+    return !inherits(lhs, "factor") || !inherits(rhs, "factor");
 }
 
 bool doubleCanBeCastedToInteger(double n) {
@@ -1754,6 +1700,31 @@ int colonInputEffects(SEXP lhs, SEXP rhs, unsigned srcIdx) {
                                     "only the first used",
                                     (int)rhsLen),
                            (int)rhsLen);
+        double lhsNum =
+            TYPEOF(lhs) == REALSXP
+                ? *REAL(lhs)
+                : (TYPEOF(lhs) == INTSXP
+                       ? *INTEGER(lhs)
+                       : (TYPEOF(lhs) == LGLSXP
+                              ? *LOGICAL(lhs)
+                              : (TYPEOF(lhs) == CPLXSXP ? COMPLEX(lhs)->r
+                                                        : 0)));
+        double rhsNum =
+            TYPEOF(rhs) == REALSXP
+                ? *REAL(rhs)
+                : (TYPEOF(rhs) == INTSXP
+                       ? *INTEGER(rhs)
+                       : (TYPEOF(rhs) == LGLSXP
+                              ? *LOGICAL(rhs)
+                              : (TYPEOF(rhs) == CPLXSXP ? COMPLEX(rhs)->r
+                                                        : 0)));
+        double diff = rhsNum - lhsNum;
+        if (diff < 0) {
+            diff = -diff;
+        }
+        if (diff > INT_MAX - 1) {
+            Rf_error("long vectors not supported yet");
+        }
     }
 
     return fastcase;
@@ -1781,11 +1752,7 @@ SEXP colonCastRhs(SEXP newLhs, SEXP rhs) {
     double newRhsNum = (newLhsNum <= rhsNum)
                            ? (newLhsNum + floor(rhsNum - newLhsNum) + 1)
                            : (newLhsNum - floor(newLhsNum - rhsNum) - 1);
-    // nan RHS - should've went to slowcase
-    assert(TYPEOF(newLhs) != INTSXP ||
-           (newRhsNum >= INT_MIN && newRhsNum <= INT_MAX));
-    SEXP result = (TYPEOF(newLhs) == INTSXP) ? Rf_ScalarInteger((int)newRhsNum)
-                                             : Rf_ScalarReal(newRhsNum);
+    SEXP result = Rf_ScalarReal(newRhsNum);
     return result;
 }
 
@@ -2917,6 +2884,65 @@ SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
             advanceImmediate();
             SEXP val = ostack_at(ctx, i);
             ostack_push(ctx, val);
+            NEXT();
+        }
+
+        INSTRUCTION(add_overflow_) {
+            SEXP lhs = ostack_at(ctx, 1);
+            SEXP rhs = ostack_at(ctx, 0);
+            SEXPTYPE res_type = (SEXPTYPE)0;
+            int int_res = -1;
+            double real_res = -2.0;
+            assert((IS_SIMPLE_SCALAR(lhs, INTSXP) ||
+                    IS_SIMPLE_SCALAR(lhs, REALSXP)) &&
+                   IS_SIMPLE_SCALAR(rhs, INTSXP));
+            if (IS_SIMPLE_SCALAR(lhs, REALSXP)) {
+                res_type = REALSXP;
+                real_res = *REAL(lhs) + *INTEGER(rhs);
+            } else {
+                res_type = INTSXP;
+                int_res = *INTEGER(lhs) + *INTEGER(rhs);
+            }
+            STORE_BINOP(res_type, int_res, real_res);
+            R_Visible = (Rboolean) true;
+            NEXT();
+        }
+
+        INSTRUCTION(ne_overflow_) {
+            assert(R_PPStackTop >= 0);
+            SEXP lhs = ostack_at(ctx, 1);
+            SEXP rhs = ostack_at(ctx, 0);
+            assert(IS_SIMPLE_SCALAR(lhs, REALSXP));
+            SEXP res;
+            if (IS_SIMPLE_SCALAR(rhs, INTSXP)) {
+                res = *REAL(lhs) != *INTEGER(rhs) && *INTEGER(rhs) != NA_INTEGER
+                          ? R_TrueValue
+                          : R_FalseValue;
+            } else if (IS_SIMPLE_SCALAR(lhs, REALSXP)) {
+                res = *REAL(lhs) != *REAL(rhs) ? R_TrueValue : R_FalseValue;
+            } else {
+                assert(false);
+            }
+            ostack_popn(ctx, 2);
+            ostack_push(ctx, res);
+            NEXT();
+        }
+
+        INSTRUCTION(le_overflow_) {
+            assert(R_PPStackTop >= 0);
+            SEXP lhs = ostack_at(ctx, 1);
+            SEXP rhs = ostack_at(ctx, 0);
+            assert(IS_SIMPLE_SCALAR(rhs, REALSXP));
+            SEXP res;
+            if (IS_SIMPLE_SCALAR(lhs, INTSXP)) {
+                res = *INTEGER(lhs) <= *REAL(rhs) ? R_TrueValue : R_FalseValue;
+            } else if (IS_SIMPLE_SCALAR(lhs, REALSXP)) {
+                res = *REAL(lhs) <= *REAL(rhs) ? R_TrueValue : R_FalseValue;
+            } else {
+                assert(false);
+            }
+            ostack_popn(ctx, 2);
+            ostack_push(ctx, res);
             NEXT();
         }
 

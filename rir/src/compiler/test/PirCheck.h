@@ -17,6 +17,7 @@ namespace rir {
     V(NoPromise)                                                               \
     V(NoExternalCalls)                                                         \
     V(Returns42L)                                                              \
+    V(NoAdd)                                                                   \
     V(NoColon)                                                                 \
     V(NoEq)                                                                    \
     V(OneEq)                                                                   \
@@ -27,8 +28,7 @@ namespace rir {
     V(TwoAdd)                                                                  \
     V(LazyCallArgs)                                                            \
     V(EagerCallArgs)                                                           \
-    V(LdVarVectorInFirstBB)                                                    \
-    V(AnAddIsNotNAOrNaN)
+    V(LdVarVectorInFirstBB)
 
 struct PirCheck {
     enum class Type : unsigned {

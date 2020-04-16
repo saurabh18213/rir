@@ -964,6 +964,9 @@ bool Rir2Pir::compileBC(const BC& bc, Opcode* pos, Opcode* nextPos,
         break;                                                                 \
     }
 
+        BINOP(AddOverflow, add_overflow_);
+        BINOP(NeqOverflow, ne_overflow_);
+        BINOP(LteOverflow, le_overflow_);
         BINOP(Lt, lt_);
         BINOP(Gt, gt_);
         BINOP(Gte, ge_);
