@@ -53,6 +53,7 @@ struct Function : public RirRuntimeObject<Function, FUNCTION_MAGIC> {
         for (size_t i = 0; i < numArgs; ++i)
             setEntry(NUM_PTRS + i, defaultArgs[i]);
         body(body_);
+        flags.set(Flag::DisableAllSpecialization);
     }
 
     Code* body() const { return Code::unpack(getEntry(0)); }
