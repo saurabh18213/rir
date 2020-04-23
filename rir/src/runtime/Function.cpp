@@ -69,12 +69,14 @@ void Function::disassemble(std::ostream& out) {
 }
 
 void Function::clearDisabledAssumptions(Assumptions& given) const {
-    if (flags.contains(Function::DisableArgumentTypeSpecialization))
-        given.clearTypeFlags();
-    if (flags.contains(Function::DisableNumArgumentsSepzialization))
-        given.clearNargs();
-    if (flags.contains(Function::DisableAllSpecialization))
-        given.clearExcept(pir::Rir2PirCompiler::minimalAssumptions);
+    //if (flags.contains(Function::DisableArgumentTypeSpecialization))
+    //    given.clearTypeFlags();
+    //if (flags.contains(Function::DisableNumArgumentsSepzialization))
+    //    given.clearNargs();
+    //if (flags.contains(Function::DisableAllSpecialization))
+    //    given.clearExcept(pir::Rir2PirCompiler::minimalAssumptions);
+    given.clearExcept(pir::Rir2PirCompiler::minimalAssumptions |
+        Assumption::NoReflectiveArgument);
 }
 
 } // namespace rir
