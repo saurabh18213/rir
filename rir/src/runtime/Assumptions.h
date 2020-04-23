@@ -236,17 +236,6 @@ struct Assumptions {
 
     void clearExcept(const Flags& filter) {
         flags = flags & filter;
-        typeFlags = typeFlags &
-          (TypeFlags() |
-           TypeAssumption::Arg0IsEager_ |
-           TypeAssumption::Arg1IsEager_ |
-           TypeAssumption::Arg2IsEager_ |
-           TypeAssumption::Arg3IsEager_ |
-           TypeAssumption::Arg4IsEager_ |
-           TypeAssumption::Arg5IsEager_ |
-           TypeAssumption::Arg6IsEager_ |
-           TypeAssumption::Arg7IsEager_
-           );
         missing = 0;
     }
 
