@@ -245,7 +245,7 @@ struct Assumptions {
     }
 
     void clearNargs() {
-        missing = 0;
+        //missing = 0;
         flags.reset(Assumption::NoExplicitlyMissingArgs);
     }
 
