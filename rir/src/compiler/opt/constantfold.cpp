@@ -177,7 +177,10 @@ bool Constantfold::apply(RirCompiler& cmp, ClosureVersion* function,
                                         False::instance();
                                     auto pl = PhiPlacement(function, inputs,
                                                            dom, dfront);
+                                    assert(pl.placement.size() > 0 &&
+                                           "0 phis to place!");
                                     if (pl.placement.size() > 0) {
+
                                         anyChange = true;
 
                                         for (auto& placement : pl.placement) {

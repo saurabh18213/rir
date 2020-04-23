@@ -14,8 +14,11 @@ PhiPlacement::PhiPlacement(ClosureVersion* cls,
                            const DominanceFrontier& dfrontier) {
     SmallSet<BB*> phis;
     SmallSet<BB*> defs;
-    for (const auto& w : writes)
+    SmallSet<BB*> originalDefs;
+    for (const auto& w : writes) {
         defs.insert(w.first);
+        originalDefs.insert(w.first);
+    }
 
     // Textbook phi placement
     // see page 31 http://ssabook.gforge.inria.fr/latest/book.pdf
@@ -27,7 +30,7 @@ PhiPlacement::PhiPlacement(ClosureVersion* cls,
         for (auto y : df) {
             if (!phis.includes(y)) {
                 phis.insert(y);
-                if (!defs.includes(y)) {
+                if (!originalDefs.includes(y)) {
                     defs.insert(y);
                 }
             }
@@ -116,14 +119,14 @@ PhiPlacement::PhiPlacement(ClosureVersion* cls,
     }
 
     // Fail if not all phis are well formed
-    for (auto& i : placement) {
-        if (i.second.size() != i.first->predecessors().size()) {
-            // TODO figure out why this happens
-            placement.clear();
-            dominatingPhi.clear();
-            break;
-        }
-    }
+    // for (auto& i : placement) {
+    //     if (i.second.size() != i.first->predecessors().size()) {
+    //         // TODO figure out why this happens
+    //         placement.clear();
+    //         dominatingPhi.clear();
+    //         break;
+    //     }
+    // }
 }
 
 } // namespace pir
