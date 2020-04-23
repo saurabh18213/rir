@@ -75,7 +75,7 @@ void Function::clearDisabledAssumptions(Assumptions& given) const {
     //    given.clearNargs();
     //if (flags.contains(Function::DisableAllSpecialization))
     //    given.clearExcept(pir::Rir2PirCompiler::minimalAssumptions);
-    given.clearNargs();
+    //given.clearNargs();
 }
 
 } // namespace rir
