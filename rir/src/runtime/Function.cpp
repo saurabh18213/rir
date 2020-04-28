@@ -71,7 +71,7 @@ void Function::disassemble(std::ostream& out) {
 static int GLOBAL_SPECIALIZATION_LEVEL =
     getenv("PIR_GLOBAL_SPECIALIZATION_LEVEL")
         ? atoi(getenv("PIR_GLOBAL_SPECIALIZATION_LEVEL"))
-        : 0;
+        : 1;
 void Function::clearDisabledAssumptions(Assumptions& given) const {
     if (flags.contains(Function::DisableArgumentTypeSpecialization))
         given.clearTypeFlags();
