@@ -90,7 +90,7 @@ void RuntimeProfiler::sample(int signal) {
 static void handler(int signal) { instance.sample(signal); }
 
 void RuntimeProfiler::initProfiler() {
-    bool ENABLE_PROFILER = getenv("PIR_ENABLE_PROFILER") ? true : false;
+    bool ENABLE_PROFILER = false; //getenv("PIR_ENABLE_PROFILER") ? true : false;
     if (!ENABLE_PROFILER) {
         return;
     }

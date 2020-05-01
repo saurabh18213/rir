@@ -2,7 +2,7 @@ stages:
   - Build container
   - Sanity Checks
   - Build benchmark container
-  - Run tests
+#  - Run tests
   - Deploy
   - Cleanup
   - Benchmark
