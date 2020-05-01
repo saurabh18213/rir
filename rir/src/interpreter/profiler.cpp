@@ -114,10 +114,10 @@ void RuntimeProfiler::initProfiler() {
 
     itime.it_value.tv_sec = 0;
     /* 500 million nsecs = .5 secs */
-    itime.it_value.tv_nsec = 20000000;
+    itime.it_value.tv_nsec = 1000000;
     itime.it_interval.tv_sec = 0;
     /* 500 million nsecs = .5 secs */
-    itime.it_interval.tv_nsec = 20000000;
+    itime.it_interval.tv_nsec = 1000000;
     timer_settime(timer_id, 0, &itime, NULL);
 }
 #else
