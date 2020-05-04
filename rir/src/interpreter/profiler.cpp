@@ -55,7 +55,7 @@ void RuntimeProfiler::sample(int signal) {
             auto samples = ++(mdEntry.sampleCount);
             slotCount++;
             if (samples == 10) {
-                mdEntry.readyForReopt = true;
+                mdEntry.readyForReopt = false;
                 // check if this feedback justifies a reopt
                 pir::PirType after;
                 after.merge(mdEntry.feedback);
