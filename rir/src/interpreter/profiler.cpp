@@ -55,7 +55,7 @@ void RuntimeProfiler::sample(int signal) {
             auto samples = ++(mdEntry.sampleCount);
             slotCount++;
             if (samples == 10) {
-                mdEntry.readyForReopt = false;
+                mdEntry.readyForReopt = true;
                 // check if this feedback justifies a reopt
                 pir::PirType after;
                 after.merge(mdEntry.feedback);
@@ -82,7 +82,7 @@ void RuntimeProfiler::sample(int signal) {
     // at least one slot justifies re-opt.
     if (goodValues >= (slotCount / 2) && needReopt) {
         // set global re-opt flag
-        // code->flags.set(Code::Reoptimise);
+        code->flags.set(Code::Reoptimise);
     }
 }
 
@@ -90,7 +90,8 @@ void RuntimeProfiler::sample(int signal) {
 static void handler(int signal) { instance.sample(signal); }
 
 void RuntimeProfiler::initProfiler() {
-    bool ENABLE_PROFILER = true; //getenv("PIR_ENABLE_PROFILER") ? true : false;
+    bool ENABLE_PROFILER =
+        false; // getenv("PIR_ENABLE_PROFILER") ? true : false;
     if (!ENABLE_PROFILER) {
         return;
     }
