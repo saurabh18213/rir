@@ -82,7 +82,7 @@ void RuntimeProfiler::sample(int signal) {
     // at least one slot justifies re-opt.
     if (goodValues >= (slotCount / 2) && needReopt) {
         // set global re-opt flag
-        code->flags.set(Code::Reoptimise);
+        // code->flags.set(Code::Reoptimise);
     }
 }
 
@@ -114,10 +114,10 @@ void RuntimeProfiler::initProfiler() {
 
     itime.it_value.tv_sec = 0;
     /* 500 million nsecs = .5 secs */
-    itime.it_value.tv_nsec = 1000000;
+    itime.it_value.tv_nsec = 10000000;
     itime.it_interval.tv_sec = 0;
     /* 500 million nsecs = .5 secs */
-    itime.it_interval.tv_nsec = 1000000;
+    itime.it_interval.tv_nsec = 10000000;
     timer_settime(timer_id, 0, &itime, NULL);
 }
 #else
