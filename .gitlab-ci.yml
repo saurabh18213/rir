@@ -23,7 +23,7 @@ sanity:
   stage: Sanity Checks
   script:
     - /opt/rir/tools/cppcheck --xml
-    - /opt/rir/build/release/bin/tests
+      #    - /opt/rir/build/release/bin/tests
 
 rir container:
   stage: Build container
@@ -205,18 +205,18 @@ test_big_inline:
     - PIR_INLINER_MAX_INLINEE_SIZE=400 PIR_INLINER_INLINE_UNLIKELY=1 ./bin/gnur-make-tests check
 
 # Test the benchmarks container before deploying
-test_benchmarks:
-  image: registry.gitlab.com/rirvm/rir_mirror/benchmark:$CI_COMMIT_SHA
-  variables:
-    GIT_STRATEGY: none
-  stage: Run tests
-  except:
-    - schedules
-  script:
-    - PATH=~/.local/bin:$PATH /opt/rbenchmarking/Setup/run.sh /opt/rbenchmarking/rebench.conf /opt/rbenchmarking/Benchmarks /opt/rir/build/release/ /opt/rir/external/custom-r "e:RIR e:PIR -r -SN -wu 0 --iterations 2"
-    - PIR_DEOPT_CHAOS=1 PATH=~/.local/bin:$PATH /opt/rbenchmarking/Setup/run.sh /opt/rbenchmarking/rebench.conf /opt/rbenchmarking/Benchmarks /opt/rir/build/release/ /opt/rir/external/custom-r "e:PIR -r -SN -wu 0 --iterations 2"
-    - PATH=~/.local/bin:$PATH /opt/rbenchmarking/Setup/run.sh /opt/rbenchmarking/rebench.conf /opt/rbenchmarking/Benchmarks /opt/rir/build/release/ /opt/rir/external/custom-r "e:PIR-LLVM -r -SN -wu 0 --iterations 3"
-  retry: 2
+#test_benchmarks:
+#  image: registry.gitlab.com/rirvm/rir_mirror/benchmark:$CI_COMMIT_SHA
+#  variables:
+#    GIT_STRATEGY: none
+#  stage: Run tests
+#  except:
+#    - schedules
+#  script:
+#    - PATH=~/.local/bin:$PATH /opt/rbenchmarking/Setup/run.sh /opt/rbenchmarking/rebench.conf /opt/rbenchmarking/Benchmarks /opt/rir/build/release/ /opt/rir/external/custom-r "e:RIR e:PIR -r -SN -wu 0 --iterations 2"
+#    - PIR_DEOPT_CHAOS=1 PATH=~/.local/bin:$PATH /opt/rbenchmarking/Setup/run.sh /opt/rbenchmarking/rebench.conf /opt/rbenchmarking/Benchmarks /opt/rir/build/release/ /opt/rir/external/custom-r "e:PIR -r -SN -wu 0 --iterations 2"
+#    - PATH=~/.local/bin:$PATH /opt/rbenchmarking/Setup/run.sh /opt/rbenchmarking/rebench.conf /opt/rbenchmarking/Benchmarks /opt/rir/build/release/ /opt/rir/external/custom-r "e:PIR-LLVM -r -SN -wu 0 --iterations 3"
+#  retry: 2
 
 deploy:
   stage: Deploy
