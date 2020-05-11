@@ -13,6 +13,16 @@
 
 #include <time.h>
 
+#include <asm/unistd.h>
+#include <fcntl.h>
+#include <linux/perf_event.h>
+#include <sys/ioctl.h>
+
+long perf_event_open(struct perf_event_attr* event_attr, pid_t pid, int cpu,
+                     int group_fd, unsigned long flags) {
+    return syscall(__NR_perf_event_open, event_attr, pid, cpu, group_fd, flags);
+}
+
 namespace rir {
 
 static RuntimeProfiler instance;
@@ -70,11 +80,11 @@ void RuntimeProfiler::sample(int signal) {
                     needReopt = true;
                 }
             }
-            if (samples > 100) {
-                mdEntry.readyForReopt = false;
-                mdEntry.sampleCount = 0;
-                mdEntry.feedback.reset();
-            }
+            // if (samples > 100) {
+            //    mdEntry.readyForReopt = false;
+            //    mdEntry.sampleCount = 0;
+            //    mdEntry.feedback.reset();
+            //}
         }
     });
 
@@ -94,31 +104,48 @@ void RuntimeProfiler::initProfiler() {
     if (!ENABLE_PROFILER) {
         return;
     }
-    struct sigaction recordAction;
-    struct sigevent sev;
-    struct itimerspec itime;
-    timer_t timer_id;
 
-    recordAction.sa_handler = handler;
-    sigfillset(&recordAction.sa_mask);
-    recordAction.sa_flags = SA_RESTART;
-    sigaction(SIGUSR1, &recordAction, NULL);
+    // Configure signal handler
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(struct sigaction));
+    sa.sa_handler = handler;
+    sa.sa_flags = 0; // SA_SIGINFO;
 
-    // create timer
+    // Setup signal handler
+    if (sigaction(SIGUSR1, &sa, NULL) < 0) {
+        fprintf(stderr, "Error setting up signal handler\n");
+        perror("sigaction");
+        exit(EXIT_FAILURE);
+    }
 
-    sev.sigev_notify = SIGEV_SIGNAL;
-    sev.sigev_signo = SIGUSR1;
-    sev.sigev_value.sival_ptr = &timer_id;
+    // Configure PMU
+    struct perf_event_attr pe;
+    memset(&pe, 0, sizeof(struct perf_event_attr));
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.size = sizeof(struct perf_event_attr);
+    pe.config =
+        PERF_COUNT_HW_INSTRUCTIONS; // Count retired hardware instructions
+    pe.disabled = 1;                // Event is initially disabled
+    pe.sample_type = PERF_SAMPLE_IP;
+    pe.sample_period = 10000;
+    pe.exclude_kernel = 1; // excluding events that happen in the kernel-space
+    pe.exclude_hv = 1;     // excluding events that happen in the hypervisor
 
-    timer_create(CLOCK_MONOTONIC, &sev, &timer_id);
+    int fd = perf_event_open(&pe, 0, -1, -1, 0);
+    if (fd == -1) {
+        fprintf(stderr, "Error opening leader %llx\n", pe.config);
+        perror("perf_event_open");
+        exit(EXIT_FAILURE);
+    }
+    // pmu_fd = fd;
 
-    itime.it_value.tv_sec = 0;
-    /* 500 million nsecs = .5 secs */
-    itime.it_value.tv_nsec = 10000000;
-    itime.it_interval.tv_sec = 0;
-    /* 500 million nsecs = .5 secs */
-    itime.it_interval.tv_nsec = 10000000;
-    timer_settime(timer_id, 0, &itime, NULL);
+    // Setup event handler for overflow signals
+    fcntl(fd, F_SETFL, O_NONBLOCK | FASYNC);
+    fcntl(fd, F_SETSIG, SIGUSR1);
+    fcntl(fd, F_SETOWN, getpid());
+
+    ioctl(fd, PERF_EVENT_IOC_RESET, 0);    // Reset event counter to 0
+    ioctl(fd, PERF_EVENT_IOC_REFRESH, -1); // Allow first signal
 }
 #else
 void RuntimeProfiler::initProfiler() {}
