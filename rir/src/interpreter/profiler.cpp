@@ -27,6 +27,9 @@ namespace rir {
 
 static RuntimeProfiler instance;
 
+static volatile size_t samples = 0;
+static volatile size_t hits = 0;
+
 RuntimeProfiler::RuntimeProfiler() {}
 
 RuntimeProfiler::~RuntimeProfiler() {}
@@ -37,6 +40,7 @@ static size_t slotCount = 0;
 static R_bcstack_t* stack;
 
 void RuntimeProfiler::sample(int signal) {
+    samples++;
     auto ctx = (RCNTXT*)R_GlobalContext;
     stack = ctx->nodestack;
     if (R_BCNodeStackTop == R_BCNodeStackBase)
@@ -53,6 +57,7 @@ void RuntimeProfiler::sample(int signal) {
     if (!md)
         return;
 
+    hits++;
     needReopt = false;
     goodValues = 0;
     slotCount = 0;
@@ -99,11 +104,17 @@ void RuntimeProfiler::sample(int signal) {
 #ifndef __APPLE__
 static void handler(int signal) { instance.sample(signal); }
 
+static void dump() {
+    std::cout << "\nsamples: " << samples << ", hits: " << hits << "\n";
+}
+
 void RuntimeProfiler::initProfiler() {
     bool ENABLE_PROFILER = getenv("PIR_ENABLE_PROFILER") ? true : false;
     if (!ENABLE_PROFILER) {
         return;
     }
+
+    std::atexit(dump);
 
     // Configure signal handler
     struct sigaction sa;
@@ -127,7 +138,7 @@ void RuntimeProfiler::initProfiler() {
         PERF_COUNT_HW_INSTRUCTIONS; // Count retired hardware instructions
     pe.disabled = 1;                // Event is initially disabled
     pe.sample_type = PERF_SAMPLE_IP;
-    pe.sample_period = 10000;
+    pe.sample_period = 1000;
     pe.exclude_kernel = 1; // excluding events that happen in the kernel-space
     pe.exclude_hv = 1;     // excluding events that happen in the hypervisor
 
