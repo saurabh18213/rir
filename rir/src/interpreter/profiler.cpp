@@ -109,7 +109,8 @@ static void dump() {
 }
 
 void RuntimeProfiler::initProfiler() {
-    bool ENABLE_PROFILER = getenv("PIR_ENABLE_PROFILER") ? true : false;
+    bool ENABLE_PROFILER = true; // getenv("PIR_ENABLE_PROFILER") ? true :
+                                 // false;
     if (!ENABLE_PROFILER) {
         return;
     }
@@ -138,7 +139,7 @@ void RuntimeProfiler::initProfiler() {
         PERF_COUNT_HW_INSTRUCTIONS; // Count retired hardware instructions
     pe.disabled = 1;                // Event is initially disabled
     pe.sample_type = PERF_SAMPLE_IP;
-    pe.sample_period = 1000;
+    pe.sample_period = 100000;
     pe.exclude_kernel = 1; // excluding events that happen in the kernel-space
     pe.exclude_hv = 1;     // excluding events that happen in the hypervisor
 
