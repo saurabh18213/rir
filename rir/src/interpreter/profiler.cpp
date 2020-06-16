@@ -109,8 +109,8 @@ static void dump() {
 }
 
 void RuntimeProfiler::initProfiler() {
-    bool ENABLE_PROFILER = true; // getenv("PIR_ENABLE_PROFILER") ? true :
-                                 // false;
+    bool ENABLE_PROFILER = false; // getenv("PIR_ENABLE_PROFILER") ? true :
+                                  // false;
     if (!ENABLE_PROFILER) {
         return;
     }
