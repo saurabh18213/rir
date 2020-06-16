@@ -142,6 +142,7 @@ void RuntimeProfiler::initProfiler() {
     pe.sample_period = 100000;
     pe.exclude_kernel = 1; // excluding events that happen in the kernel-space
     pe.exclude_hv = 1;     // excluding events that happen in the hypervisor
+    pe.precise_ip = 3;
 
     int fd = perf_event_open(&pe, 0, -1, -1, 0);
     if (fd == -1) {
