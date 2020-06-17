@@ -29,6 +29,7 @@ static RuntimeProfiler instance;
 
 static volatile size_t samples = 0;
 static volatile size_t hits = 0;
+static volatile size_t compilations = 0;
 
 RuntimeProfiler::RuntimeProfiler() {}
 
@@ -85,11 +86,11 @@ void RuntimeProfiler::sample(int signal) {
                     needReopt = true;
                 }
             }
-            // if (samples > 100) {
-            //    mdEntry.readyForReopt = false;
-            //    mdEntry.sampleCount = 0;
-            //    mdEntry.feedback.reset();
-            //}
+            if (samples > 100) {
+                mdEntry.readyForReopt = false;
+                mdEntry.sampleCount = 0;
+                mdEntry.feedback.reset();
+            }
         }
     });
 
@@ -98,6 +99,7 @@ void RuntimeProfiler::sample(int signal) {
     if (goodValues >= (slotCount / 2) && needReopt) {
         // set global re-opt flag
         code->flags.set(Code::Reoptimise);
+        compilations++;
     }
 }
 
@@ -105,7 +107,8 @@ void RuntimeProfiler::sample(int signal) {
 static void handler(int signal) { instance.sample(signal); }
 
 static void dump() {
-    std::cout << "\nsamples: " << samples << ", hits: " << hits << "\n";
+    std::cout << "\nsamples: " << samples << ", hits: " << hits << "\n"
+              << "triggered " << compilations << " recompilations\n";
 }
 
 void RuntimeProfiler::initProfiler() {
