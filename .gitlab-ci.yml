@@ -270,6 +270,7 @@ benchmark_llvm:
   stage: Benchmark
   variables:
     GIT_STRATEGY: none
+    PIR_ENABLE_PROFILER: 1
   tags:
     - benchmarks
   script:
