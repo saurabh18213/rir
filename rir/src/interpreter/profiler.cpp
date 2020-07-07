@@ -80,13 +80,13 @@ void RuntimeProfiler::sample(int signal) {
                     mdEntry.needReopt = true;
                 }
             }
-            if (samples >= 200) {
+            if (samples >= 150) {
                 goodValues++;
                 if (mdEntry.needReopt) {
                     needReopt = true;
                 }
             }
-            if (samples > 2000) {
+            if (samples > 1500) {
                 mdEntry.readyForReopt = false;
                 mdEntry.sampleCount = 0;
                 mdEntry.feedback.reset();
@@ -142,7 +142,7 @@ void RuntimeProfiler::initProfiler() {
         PERF_COUNT_HW_INSTRUCTIONS; // Count retired hardware instructions
     pe.disabled = 1;                // Event is initially disabled
     pe.sample_type = PERF_SAMPLE_IP;
-    pe.sample_period = 100000;
+    pe.sample_period = 1000000;
     pe.exclude_kernel = 1; // excluding events that happen in the kernel-space
     pe.exclude_hv = 1;     // excluding events that happen in the hypervisor
     pe.precise_ip = 3;
