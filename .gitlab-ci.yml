@@ -1,6 +1,5 @@
 stages:
   - Build container
-  - Sanity Checks
   - Build benchmark container
   - Deploy
   - Cleanup
@@ -14,15 +13,6 @@ before_script:
   - export REBENCH_OPTIONS="-S -df $CI_PROJECT_DIR/benchmarks.data --commit-id=$CI_COMMIT_SHA --branch=master"
   - export REBENCH_RUN="/opt/rbenchmarking/Setup/run.sh /opt/rbenchmarking/rebench.conf /opt/rbenchmarking/Benchmarks /opt/rir/build/release"
   - export REBENCH_RUN_BL="/opt/rbenchmarking/Setup/run.sh /opt/rbenchmarking/rebench.conf /opt/rbenchmarking/Benchmarks . /opt/rir/external/custom-r /opt/graal"
-
-sanity:
-  image: registry.gitlab.com/rirvm/rir_mirror:$CI_COMMIT_SHA
-  variables:
-    GIT_STRATEGY: none
-  stage: Sanity Checks
-  script:
-    - /opt/rir/tools/cppcheck --xml
-    - /opt/rir/build/release/bin/tests
 
 rir container:
   stage: Build container
