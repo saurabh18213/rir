@@ -80,13 +80,13 @@ void RuntimeProfiler::sample(int signal) {
                     mdEntry.needReopt = true;
                 }
             }
-            if (samples >= 20) {
+            if (samples >= 50) {
                 goodValues++;
                 if (mdEntry.needReopt) {
                     needReopt = true;
                 }
             }
-            if (samples > 200) {
+            if (samples > 500) {
                 mdEntry.readyForReopt = false;
                 mdEntry.sampleCount = 0;
                 mdEntry.feedback.reset();
