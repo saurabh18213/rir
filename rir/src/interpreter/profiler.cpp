@@ -70,7 +70,7 @@ void RuntimeProfiler::sample(int signal) {
             mdEntry.feedback.record(sxpval);
             auto samples = ++(mdEntry.sampleCount);
             slotCount++;
-            if (samples == 75) {
+            if (samples == 200) {
                 mdEntry.readyForReopt = true;
                 // check if this feedback justifies a reopt
                 pir::PirType after = pir::PirType::optimistic();
@@ -80,13 +80,13 @@ void RuntimeProfiler::sample(int signal) {
                     mdEntry.needReopt = true;
                 }
             }
-            if (samples >= 75) {
+            if (samples >= 200) {
                 goodValues++;
                 if (mdEntry.needReopt) {
                     needReopt = true;
                 }
             }
-            if (samples > 750) {
+            if (samples > 2000) {
                 mdEntry.readyForReopt = false;
                 mdEntry.sampleCount = 0;
                 mdEntry.feedback.reset();
