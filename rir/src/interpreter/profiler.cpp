@@ -70,7 +70,7 @@ void RuntimeProfiler::sample(int signal) {
             mdEntry.feedback.record(sxpval);
             auto samples = ++(mdEntry.sampleCount);
             slotCount++;
-            if (samples == 75) {
+            if (samples == 100) {
                 mdEntry.readyForReopt = true;
                 // check if this feedback justifies a reopt
                 pir::PirType after = pir::PirType::optimistic();
@@ -80,13 +80,13 @@ void RuntimeProfiler::sample(int signal) {
                     mdEntry.needReopt = true;
                 }
             }
-            if (samples >= 75) {
+            if (samples >= 100) {
                 goodValues++;
                 if (mdEntry.needReopt) {
                     needReopt = true;
                 }
             }
-            if (samples > 750) {
+            if (samples > 1000) {
                 mdEntry.readyForReopt = false;
                 mdEntry.sampleCount = 0;
                 mdEntry.feedback.reset();
@@ -142,7 +142,7 @@ void RuntimeProfiler::initProfiler() {
         PERF_COUNT_HW_INSTRUCTIONS; // Count retired hardware instructions
     pe.disabled = 1;                // Event is initially disabled
     pe.sample_type = PERF_SAMPLE_IP;
-    pe.sample_period = 1000000;
+    pe.sample_period = 500000;
     pe.exclude_kernel = 1; // excluding events that happen in the kernel-space
     pe.exclude_hv = 1;     // excluding events that happen in the hypervisor
     pe.precise_ip = 3;
