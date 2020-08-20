@@ -1,5 +1,6 @@
 #include "instance.h"
 #include "api.h"
+#include <fstream>
 
 namespace rir {
 
@@ -63,6 +64,19 @@ InterpreterInstance* context_create() {
     } else {
         c->closureOptimizer = rirOptDefaultOpts;
     }
+
+    std::ofstream outfile;
+    outfile.open("/tmp/profiler.log", std::ios_base::app);
+    outfile << "============================\n";
+
+    std::ifstream f;
+    f.open ("/proc/self/cmdline", std::ios::in);
+    std::string s;
+    std::getline(f, s);
+    outfile << s << "\n";
+    f.close();
+
+    outfile.close();
 
     return c;
 }

@@ -1334,6 +1334,10 @@ void LowerFunctionLLVM::setVal(Instruction* i, llvm::Value* val) {
         val->setName(i->getRef());
 
     setVariable(i, val, inPushContext && escapesInlineContext.count(i));
+
+    if (i->typeFeedback.origin)
+        call(NativeBuiltins::profilerInstrumentation, {paramCode(),
+                    builder.CreateBitCast(basepointer, t::voidPtr)});
 }
 
 llvm::Value* LowerFunctionLLVM::isExternalsxp(llvm::Value* v, uint32_t magic) {
@@ -3982,6 +3986,13 @@ bool LowerFunctionLLVM::tryCompile() {
 
             case Tag::Return: {
                 auto res = loadSxp(Return::Cast(i)->arg<0>().val());
+
+                call(NativeBuiltins::profilerInstrumentation, {paramCode(),
+                    builder.CreateBitCast(basepointer, t::voidPtr)});
+                if (cls->owner()->name() == "execute") {
+                  call(NativeBuiltins::profilerInstrumentationSummary, {});
+                }
+
                 if (numLocals > 0)
                     decStack(numLocals);
                 builder.CreateRet(res);

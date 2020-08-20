@@ -14,9 +14,116 @@
 #include <R_ext/RS.h> /* for Memzero */
 
 #include <llvm/IR/Attributes.h>
+#include <unordered_set>
+#include <fstream>
 
 namespace rir {
 namespace pir {
+
+static std::unordered_set<Code*> profiled;
+static std::unordered_set<Code*> triggered;
+
+void profilerInstrumentationImpl(Code* code, R_bcstack_t* stack) {
+    profiled.insert(code);
+
+    auto md = code->pirTypeFeedback();
+    if (!md)
+        return;
+
+    size_t slotCount = 0;
+    size_t goodValues = 0;
+    bool needReopt = false;
+
+    md->forEachSlot([&](size_t i, PirTypeFeedback::MDEntry& mdEntry) {
+        auto slot = *(stack + i);
+        assert(slot.tag == 0);
+        if (auto sxpval = slot.u.sxpval) {
+            mdEntry.feedback.record(sxpval);
+            auto samples = ++(mdEntry.sampleCount);
+            slotCount++;
+            if (samples == 10) {
+                mdEntry.readyForReopt = true;
+                // check if this feedback justifies a reopt
+                pir::PirType after = pir::PirType::optimistic();
+                after.merge(mdEntry.feedback);
+                if (!mdEntry.previousType.isA(after)) {
+                    // mark slot as good for reopt
+                    mdEntry.needReopt = true;
+                }
+            }
+            if (samples >= 10) {
+                goodValues++;
+                if (mdEntry.needReopt) {
+                    needReopt = true;
+                }
+            }
+            if (samples > 100) {
+                mdEntry.readyForReopt = false;
+                mdEntry.sampleCount = 0;
+                mdEntry.feedback.reset();
+                mdEntry.needReopt = false;
+            }
+        }
+    });
+
+    // only trigger reopt if at least 50% of all slots have enough samples and
+    // at least one slot justifies re-opt.
+    if (goodValues >= (slotCount / 2) && needReopt) {
+        triggered.insert(code);
+    }
+}
+NativeBuiltin NativeBuiltins::profilerInstrumentation = {"profilerInstrumentation", (void*)&profilerInstrumentationImpl};
+
+void profilerInstrumentationSummaryImpl() {
+    for (auto c : profiled) {
+        SEXP result = (SEXP)((uintptr_t)c - sizeof(VECTOR_SEXPREC));
+        if (TYPEOF(result) != EXTERNALSXP)
+            return;
+
+        auto md = c->pirTypeFeedback();
+        if (!md)
+            return;
+        std::ofstream outfile;
+        outfile.open("/tmp/profiler.log", std::ios_base::app);
+        md->forEachSlot([&](size_t i, PirTypeFeedback::MDEntry& mdEntry) {
+            if (mdEntry.needReopt) {
+                pir::PirType after = pir::PirType::optimistic();
+                after.merge(mdEntry.feedback);
+                std::stringstream ss;
+                md->getSrcCodeOfSlot(i)->print(ss);
+                std::string s;
+                int offset = mdEntry.offset-25;
+                std::getline(ss, s);
+                std::getline(ss, s);
+                std::getline(ss, s);
+                std::getline(ss, s);
+                while (!ss.eof()) {
+                    std::getline(ss, s);
+                    if (s.empty())
+                      continue;
+                    auto pos = s.find_first_not_of(' ');
+                    if (pos > 10)
+                      break;
+                    int line = atoi(s.substr(pos).c_str());
+                    if (line > offset)
+                        break;
+                }
+                outfile << mdEntry.offset << " : " << after << " vs. " << mdEntry.previousType << "\n";
+                for(int i = 0; i < 8 && !ss.eof(); ++i) {
+                    std::getline(ss, s);
+                    outfile << s << "\n";
+                }
+            }
+            memset(&mdEntry.feedback, 0, sizeof(mdEntry.feedback));
+            mdEntry.sampleCount = 0;
+            mdEntry.needReopt = false;
+            mdEntry.readyForReopt = false;
+        });
+    }
+    triggered.clear();
+    profiled.clear();
+}
+NativeBuiltin NativeBuiltins::profilerInstrumentationSummary = {"profilerInstrumentationSummary", (void*)&profilerInstrumentationSummaryImpl};
 
 struct MatrixDimension {
     R_xlen_t row;

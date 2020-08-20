@@ -91,6 +91,10 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
         SEXP map = getEntry(1);
         if (!map)
             return nullptr;
+        if (TYPEOF(map) != EXTERNALSXP)
+            return nullptr;
+        if (!PirTypeFeedback::check(map))
+            return nullptr;
         return PirTypeFeedback::unpack(map);
     }
     void pirTypeFeedback(PirTypeFeedback* map) {

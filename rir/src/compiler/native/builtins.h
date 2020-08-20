@@ -174,6 +174,9 @@ struct NativeBuiltins {
     static NativeBuiltin nonLocalReturn;
 
     static NativeBuiltin clsEq;
+
+    static NativeBuiltin profilerInstrumentation;
+    static NativeBuiltin profilerInstrumentationSummary;
 };
 
 }
