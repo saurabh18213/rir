@@ -79,6 +79,8 @@ void profilerInstrumentationSummaryImpl() {
     size_t optimizable = 0;
     size_t identical = 0;
     size_t wrong = 0;
+    std::ofstream outfile;
+    outfile.open("/tmp/profiler.log", std::ios_base::app);
     for (auto c : profiled) {
         SEXP result = (SEXP)((uintptr_t)c - sizeof(VECTOR_SEXPREC));
         if (TYPEOF(result) != EXTERNALSXP)
@@ -103,6 +105,7 @@ void profilerInstrumentationSummaryImpl() {
                     (!after.maybeHasAttrs() && mdEntry.previousType.maybeHasAttrs()))
                       optimizable++;
 
+                outfile << "### " << mdEntry.offset << " : " << after << " vs. " << mdEntry.previousType << "\n";
                 // std::stringstream ss;
                 // md->getSrcCodeOfSlot(i)->print(ss);
                 // std::string s;
@@ -134,8 +137,6 @@ void profilerInstrumentationSummaryImpl() {
             mdEntry.readyForReopt = false;
         });
     }
-    std::ofstream outfile;
-    outfile.open("/tmp/profiler.log", std::ios_base::app);
     outfile << identical << "," << narrower << "," << wrong << "," << optimizable << "\n";
     outfile.close();
     triggered.clear();
