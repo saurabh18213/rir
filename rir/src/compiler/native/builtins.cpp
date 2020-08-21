@@ -75,6 +75,10 @@ void profilerInstrumentationImpl(Code* code, R_bcstack_t* stack) {
 NativeBuiltin NativeBuiltins::profilerInstrumentation = {"profilerInstrumentation", (void*)&profilerInstrumentationImpl};
 
 void profilerInstrumentationSummaryImpl() {
+    size_t narrower = 0;
+    size_t optimizable = 0;
+    size_t identical = 0;
+    size_t wrong = 0;
     for (auto c : profiled) {
         SEXP result = (SEXP)((uintptr_t)c - sizeof(VECTOR_SEXPREC));
         if (TYPEOF(result) != EXTERNALSXP)
@@ -83,36 +87,46 @@ void profilerInstrumentationSummaryImpl() {
         auto md = c->pirTypeFeedback();
         if (!md)
             return;
-        std::ofstream outfile;
-        outfile.open("/tmp/profiler.log", std::ios_base::app);
         md->forEachSlot([&](size_t i, PirTypeFeedback::MDEntry& mdEntry) {
             if (mdEntry.needReopt) {
                 pir::PirType after = pir::PirType::optimistic();
                 after.merge(mdEntry.feedback);
-                std::stringstream ss;
-                md->getSrcCodeOfSlot(i)->print(ss);
-                std::string s;
-                int offset = mdEntry.offset-25;
-                std::getline(ss, s);
-                std::getline(ss, s);
-                std::getline(ss, s);
-                std::getline(ss, s);
-                while (!ss.eof()) {
-                    std::getline(ss, s);
-                    if (s.empty())
-                      continue;
-                    auto pos = s.find_first_not_of(' ');
-                    if (pos > 10)
-                      break;
-                    int line = atoi(s.substr(pos).c_str());
-                    if (line > offset)
-                        break;
-                }
-                outfile << mdEntry.offset << " : " << after << " vs. " << mdEntry.previousType << "\n";
-                for(int i = 0; i < 8 && !ss.eof(); ++i) {
-                    std::getline(ss, s);
-                    outfile << s << "\n";
-                }
+                if (mdEntry.previousType.isA(after) && after.isA(mdEntry.previousType))
+                    identical++;
+                else if (after.isA(mdEntry.previousType))
+                    narrower++;
+                else
+                    wrong++;
+
+                if ((after.unboxable() && !mdEntry.previousType.unboxable()) ||
+                    (!after.maybeObj() && mdEntry.previousType.maybeObj()) ||
+                    (!after.maybeHasAttrs() && mdEntry.previousType.maybeHasAttrs()))
+                      optimizable++;
+
+                // std::stringstream ss;
+                // md->getSrcCodeOfSlot(i)->print(ss);
+                // std::string s;
+                // int offset = mdEntry.offset-25;
+                // std::getline(ss, s);
+                // std::getline(ss, s);
+                // std::getline(ss, s);
+                // std::getline(ss, s);
+                // while (!ss.eof()) {
+                //     std::getline(ss, s);
+                //     if (s.empty())
+                //       continue;
+                //     auto pos = s.find_first_not_of(' ');
+                //     if (pos > 10)
+                //       break;
+                //     int line = atoi(s.substr(pos).c_str());
+                //     if (line > offset)
+                //         break;
+                // }
+                // outfile << mdEntry.offset << " : " << after << " vs. " << mdEntry.previousType << "\n";
+                // for(int i = 0; i < 8 && !ss.eof(); ++i) {
+                //     std::getline(ss, s);
+                //     outfile << s << "\n";
+                // }
             }
             memset(&mdEntry.feedback, 0, sizeof(mdEntry.feedback));
             mdEntry.sampleCount = 0;
@@ -120,6 +134,9 @@ void profilerInstrumentationSummaryImpl() {
             mdEntry.readyForReopt = false;
         });
     }
+    std::ofstream outfile;
+    outfile.open("/tmp/profiler.log", std::ios_base::app);
+    outfile << identical << "," << narrower << "," << wrong << "," << optimizable << "\n";
     triggered.clear();
     profiled.clear();
 }
