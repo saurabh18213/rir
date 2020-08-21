@@ -82,11 +82,11 @@ void profilerInstrumentationSummaryImpl() {
     for (auto c : profiled) {
         SEXP result = (SEXP)((uintptr_t)c - sizeof(VECTOR_SEXPREC));
         if (TYPEOF(result) != EXTERNALSXP)
-            return;
+            continue;
 
         auto md = c->pirTypeFeedback();
         if (!md)
-            return;
+            continue;
         md->forEachSlot([&](size_t i, PirTypeFeedback::MDEntry& mdEntry) {
             if (mdEntry.needReopt) {
                 pir::PirType after = pir::PirType::optimistic();
@@ -137,6 +137,7 @@ void profilerInstrumentationSummaryImpl() {
     std::ofstream outfile;
     outfile.open("/tmp/profiler.log", std::ios_base::app);
     outfile << identical << "," << narrower << "," << wrong << "," << optimizable << "\n";
+    outfile.close();
     triggered.clear();
     profiled.clear();
 }
