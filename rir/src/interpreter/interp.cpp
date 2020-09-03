@@ -1778,10 +1778,107 @@ SEXP colonCastRhs(SEXP newLhs, SEXP rhs) {
     return result;
 }
 
+class CallLogger {
+public:
+  std::unordered_map<SEXP, std::unordered_map<Assumptions, size_t>> callsite2context;
+  std::unordered_map<Code*, std::unordered_map<SEXP, size_t>> version2callsite;
+  std::unordered_map<Code*, SEXP> version2cls;
+
+  std::ofstream callsite2cont;
+  std::ofstream callee2callsite;
+  std::ofstream version2clslog;
+  std::string name;
+
+  CallLogger() {
+    auto f1 = "/media/callsite2context.csv";
+    auto f2 = "/media/callee2callsite.csv";
+    auto f3 = "/media/version2cls.csv";
+    auto e1 = exists(f1);
+    auto e2 = exists(f2);
+    auto e3 = exists(f3);
+    callsite2cont.open(f1, std::ios_base::app);
+    callee2callsite.open(f2, std::ios_base::app);
+    version2clslog.open(f3, std::ios_base::app);
+    if (!e1)
+      callsite2cont << "benchmark\tcallsite\tcallsite ast\tcontext\tfrequency\n";
+    if (!e2)
+      callee2callsite << "benchmark\tcallsite\tversion\tfrequency\n";
+    if (!e3)
+      version2clslog << "benchmark\tversion\tcls\n";
+
+    std::string line;
+    std::ifstream myfile("/proc/self/cmdline");
+    if (myfile.is_open())
+      std::getline(myfile, line);
+    auto p = line.find("harness.r");
+    if (p != std::string::npos) {
+      line = line.substr(p+9);
+      name = line;
+    }
+  }
+
+  void record(const CallContext* c, Code* callee) {
+    if (!c)
+      return;
+    R_PreserveObject(c->ast);
+    callsite2context[c->ast][c->givenAssumptions]++;
+    version2callsite[callee][c->ast]++;
+    version2cls[callee] = c->callee;
+  }
+
+  static CallLogger& instance() {
+    static CallLogger l;
+    return l;
+  }
+
+  inline bool exists (const std::string& name) {
+    std::ifstream f(name.c_str());
+    return f.good();
+  }
+
+  ~CallLogger() {
+    for (auto it1 = callsite2context.begin(); it1 != callsite2context.end(); it1++) {
+      auto callsite = it1->first;
+      auto contexts = it1->second;
+      std::string res;
+      if (TYPEOF(callsite) == LANGSXP && TYPEOF(CAR(callsite)) == SYMSXP)
+        res = CHAR(PRINTNAME(CAR(callsite)));
+      for (auto it2 = contexts.begin(); it2 != contexts.end(); it2++) {
+        auto context = it2->first;
+        auto n = it2->second;
+        callsite2cont << name << '\t'
+                      << callsite << '\t'
+                      << res << '\t'
+                      << context << '\t'
+                      << n << "\n";
+      }
+    }
+    for (auto it1 = version2callsite.begin(); it1 != version2callsite.end(); it1++) {
+      auto callee = it1->first;
+      auto callers = it1->second;
+      for (auto it2 = callers.begin(); it2 != callers.end(); it2++) {
+        auto callsite = it2->first;
+        auto n = it2->second;
+        callee2callsite << name << '\t'
+                      << callsite << '\t'
+                      << callee << '\t'
+                      << n << "\n";
+      }
+    }
+    for (auto it = version2cls.begin(); it != version2cls.end(); it++) {
+      auto version = it->first;
+      auto cls = it->second;
+      version2clslog << name << '\t' << version << '\t' << cls << "\n";
+    }
+  }
+};
+
 SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
                  const CallContext* callCtxt, Opcode* initialPC,
                  R_bcstack_t* localsBase, BindingCache* cache) {
     assert(env != symbol::delayedEnv || (callCtxt != nullptr));
+
+    CallLogger::instance().record(callCtxt, c);
 
     checkUserInterrupt();
     if (!initialPC && c->nativeCode) {

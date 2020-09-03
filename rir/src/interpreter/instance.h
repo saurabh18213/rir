@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <functional>
 #include <stdint.h>
+#include <fstream>
 
 #include "runtime/Function.h"
 
