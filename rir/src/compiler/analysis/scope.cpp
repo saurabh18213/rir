@@ -146,7 +146,7 @@ AbstractResult ScopeAnalysis::doCompute(ScopeAnalysisState& state,
         // deoptimize the forcee function. This is a quite useful optimization,
         // I hope once we support deoptimization in promises proper, we will be
         // remember to remove this check!
-        if (!inPromise) {
+        if (!inPromise && depth == 0) {
             // who knows what the deopt target will return...
             state.returnValue.taint();
             state.mayUseReflection = true;
@@ -348,7 +348,11 @@ AbstractResult ScopeAnalysis::doCompute(ScopeAnalysisState& state,
             ScopeAnalysis nextFun(version, args, lexicalEnv, state, globalState,
                                   depth + 1, log);
             nextFun();
+            if (nextFun.result().returnValue.type.isVoid())
+                return;
+
             state.mergeCall(code, nextFun.result());
+            assert(!nextFun.result().returnValue.type.isVoid());
             updateReturnValue(nextFun.result().returnValue);
             effect.keepSnapshot = true;
             handled = true;
