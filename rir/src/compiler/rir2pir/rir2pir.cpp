@@ -544,6 +544,23 @@ bool Rir2Pir::compileBC(const BC& bc, Opcode* pos, Opcode* nextPos,
             target = DispatchTable::unpack(BODY(monomorphic));
         }
 
+        if (target) {
+            // TODO: this is a complete hack, but right now we don't have a
+            // better solution. What happens if we statically reorder
+            // arguments (and create dotdotdot lists) is that we loose the
+            // original promargs order. But for upon calling usemethod a
+            // second environment (and thus new argument matching) is done,
+            // which needs the original order. What we should do is to
+            // somehow record the original order before static shuffling,
+            // such that we can restore it in createLegaxyArgsList in the
+            // interpreter. At the moment however this will just result in
+            // an assert.
+            if (Query::needsPromargs(target->baseline())) {
+                monomorphicClosure = monomorphicInnerFunction = false;
+                monomorphic = monomorphicPolyenv = nullptr;
+            }
+        }
+
         auto ldfun = LdFun::Cast(callee);
         if (inPromise()) {
             if (ldfun) {

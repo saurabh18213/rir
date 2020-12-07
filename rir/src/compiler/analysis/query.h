@@ -23,6 +23,9 @@ class Query {
     static bool noEnvSpec(Code* c);
     static bool noDeopt(Code* c);
     static std::unordered_set<Value*> returned(Code* c);
+
+    static bool needsPromargs(rir::Code* c);
+    static bool needsPromargs(rir::Function* f);
 };
 } // namespace pir
 } // namespace rir
