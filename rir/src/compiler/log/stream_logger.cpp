@@ -353,5 +353,12 @@ void StreamLogger::flush() {
     }
 }
 
+void StreamLogger::version(SEXP what, const std::string& name,
+                           const Context& ctx) {
+    std::cerr << ">>> Compiling '" << name << "' "
+              << const_cast<Context&>(ctx).toI() << " " << ctx << " " << what
+              << "\n";
+}
+
 } // namespace pir
 } // namespace rir
