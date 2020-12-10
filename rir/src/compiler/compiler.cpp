@@ -15,6 +15,8 @@
 
 #include <chrono>
 
+#include "utils/measuring.h"
+
 namespace rir {
 namespace pir {
 
@@ -27,6 +29,7 @@ void Compiler::compileClosure(SEXP closure, const std::string& name,
                               const Context& assumptions_, MaybeCls success,
                               Maybe fail,
                               std::list<PirTypeFeedback*> outerFeedback) {
+    Measuring::countEvent("compileClosure entered");
     assert(isValidClosureSEXP(closure));
 
     DispatchTable* tbl = DispatchTable::unpack(BODY(closure));
@@ -58,6 +61,7 @@ void Compiler::compileFunction(rir::DispatchTable* src, const std::string& name,
                                const Context& assumptions_, MaybeCls success,
                                Maybe fail,
                                std::list<PirTypeFeedback*> outerFeedback) {
+    Measuring::countEvent("compile function entered");
     Context assumptions = assumptions_;
     auto srcFunction = src->baseline();
     srcFunction->clearDisabledAssumptions(assumptions);
@@ -73,12 +77,15 @@ void Compiler::compileClosure(Closure* closure, rir::Function* optFunction,
                               const Context& ctx, MaybeCls success, Maybe fail,
                               std::list<PirTypeFeedback*> outerFeedback) {
 
+    Measuring::countEvent("compileClosure common entered");
     if (!ctx.includes(minimalContext)) {
         for (const auto& a : minimalContext) {
             if (!ctx.includes(a)) {
                 std::stringstream as;
                 as << "Missing minimal assumption " << a;
                 logger.warn(as.str());
+                Measuring::countEvent(
+                    "compileClosure aborted by missing minimal context");
                 return fail();
             }
         }
@@ -93,17 +100,21 @@ void Compiler::compileClosure(Closure* closure, rir::Function* optFunction,
         closure->formals().hasDots()) {
         closure->rirFunction()->flags.set(Function::NotOptimizable);
         logger.warn("no support for ...");
+        Measuring::countEvent("compileClosure aborted by dots");
         return fail();
     }
 
     if (closure->rirFunction()->body()->codeSize > Parameter::MAX_INPUT_SIZE) {
         closure->rirFunction()->flags.set(Function::NotOptimizable);
         logger.warn("skipping huge function");
+        Measuring::countEvent("compileClosure aborted by function too big");
         return fail();
     }
 
-    if (auto existing = closure->findCompatibleVersion(ctx))
+    if (auto existing = closure->findCompatibleVersion(ctx)) {
+        Measuring::countEvent("compileClosure return by finding compatible");
         return success(existing);
+    }
 
     auto version = closure->declareVersion(ctx, optFunction);
     Builder builder(version, closure->closureEnv());
@@ -180,6 +191,8 @@ void Compiler::compileClosure(Closure* closure, rir::Function* optFunction,
         logger.warn("Failed to compile default arg");
         logger.close(version);
         closure->erase(ctx);
+        Measuring::countEvent(
+            "compileClosure aborted by failed default arg compilation");
         return fail();
     }
 
@@ -193,6 +206,7 @@ void Compiler::compileClosure(Closure* closure, rir::Function* optFunction,
 #endif
 #endif
         log.flush();
+        Measuring::countEvent("compileClosure return by compilation");
         return success(version);
     }
 
@@ -200,6 +214,7 @@ void Compiler::compileClosure(Closure* closure, rir::Function* optFunction,
     log.flush();
     logger.close(version);
     closure->erase(ctx);
+    Measuring::countEvent("compileClosure aborted by failed compilation");
     return fail();
 }
 
@@ -210,6 +225,7 @@ std::unique_ptr<CompilerPerf> PERF = std::unique_ptr<CompilerPerf>(
     MEASURE_COMPILER_PERF ? new CompilerPerf : nullptr);
 
 void Compiler::optimizeModule() {
+    Measuring::countEvent("optimizeModule entered");
     logger.flush();
     size_t passnr = 0;
     PassScheduler::instance().run([&](const Pass* translation) {

@@ -210,8 +210,6 @@ class StreamLogger {
     void title(const std::string& msg);
     void flush();
 
-    void version(SEXP what, const std::string& name, const Context& ctx);
-
     void close(ClosureVersion* cls) { streams.erase(cls); }
 
   private:

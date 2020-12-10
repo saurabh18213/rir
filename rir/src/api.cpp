@@ -23,6 +23,8 @@
 #include <memory>
 #include <string>
 
+#include "utils/measuring.h"
+
 using namespace rir;
 
 extern "C" Rboolean R_Visible;
@@ -276,6 +278,7 @@ REXPORT SEXP pirSetDebugFlags(SEXP debugFlags) {
 
 SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 const pir::DebugOptions& debug) {
+    Measuring::countEvent("pirCompile entered");
     if (!isValidClosureSEXP(what)) {
         Rf_error("not a compiled closure");
     }
@@ -290,10 +293,17 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
     pir::Module* m = new pir::Module;
     pir::StreamLogger logger(debug);
     logger.title("Compiling " + name);
-    logger.version(what, name, assumptions);
+    // {
+    //     std::stringstream ss;
+    //     ss << name << " " << const_cast<Context&>(assumptions).toI();
+    //     Measuring::countEvent(ss.str());
+    // }
     pir::Compiler cmp(m, logger);
+    Measuring::startTimer();
     cmp.compileClosure(what, name, assumptions,
                        [&](pir::ClosureVersion* c) {
+                           Measuring::countEvent(
+                               "success callback - will optimize");
                            logger.flush();
                            cmp.optimizeModule();
 
@@ -309,11 +319,12 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                            DispatchTable::unpack(BODY(what))->insert(fun);
                        },
                        [&]() {
+                           Measuring::countEvent("fail callback");
                            if (debug.includes(pir::DebugFlag::ShowWarnings))
                                std::cerr << "Compilation failed\n";
                        },
                        {});
-
+    Measuring::countTimer("pirCompile");
     delete m;
     UNPROTECT(1);
     return what;
