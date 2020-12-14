@@ -37,12 +37,12 @@ SEXP rirForcePromise(SEXP);
 SEXP argsLazyCreation(void* rirDataWrapper);
 
 struct LazyArglist;
-SEXP createLegacyArgsListFromStackValues(size_t length, const R_bcstack_t* args,
-                                         LazyArglist* argsStore,
-                                         const Immediate* names, SEXP ast,
-                                         bool eagerCallee,
-                                         bool recreateOriginalPromargs,
-                                         InterpreterInstance* ctx);
+SEXP createLegacyArglistFromStackValues(size_t length, const R_bcstack_t* args,
+                                        LazyArglist* argsStore,
+                                        const Immediate* names, SEXP ast,
+                                        bool eagerCallee,
+                                        bool recreateOriginalPromargs,
+                                        InterpreterInstance* ctx);
 
 SEXP createEnvironment(std::vector<SEXP>* args, const SEXP parent,
                        const Opcode* pc, InterpreterInstance* ctx,

@@ -7,6 +7,7 @@
 #include "ir/BC_inc.h"
 #include "ir/Deoptimization.h"
 #include "pir.h"
+#include "runtime/ArglistOrder.h"
 #include "singleton_values.h"
 #include "tag.h"
 #include "value.h"
@@ -2016,7 +2017,7 @@ class VLIE(Call, Effects::Any()), public CallInstruction {
         pushArg(fun, RType::closure);
 
         // Calling builtins with names or ... is not supported by callBuiltin,
-        // that's why those calls go through the normall call BC.
+        // that's why those calls go through the normal call BC.
         auto argtype =
             PirType(RType::prom) | RType::missing | RType::expandedDots;
         if (auto con = LdConst::Cast(fun))
@@ -2110,6 +2111,7 @@ class VLIE(NamedCall, Effects::Any()), public CallInstruction {
 // specified as `cls_`, args passed as promises.
 class VLIE(StaticCall, Effects::Any()), public CallInstruction {
     Closure* cls_;
+    ArglistOrder::CallArglistOrder argOrderOrig;
 
   public:
     Context givenContext;
@@ -2122,8 +2124,9 @@ class VLIE(StaticCall, Effects::Any()), public CallInstruction {
     Closure* tryGetCls() const override final { return cls(); }
 
     StaticCall(Value * callerEnv, Closure * cls, Context givenContext,
-               const std::vector<Value*>& args, FrameState* fs, unsigned srcIdx,
-               Value* runtimeClosure = Tombstone::closure());
+               const std::vector<Value*>& args,
+               ArglistOrder::CallArglistOrder&& argOrderOrig, FrameState* fs,
+               unsigned srcIdx, Value* runtimeClosure = Tombstone::closure());
 
     size_t nCallArgs() const override { return nargs() - 3; };
     void eachCallArg(const Instruction::ArgumentValueIterator& it)
@@ -2143,6 +2146,8 @@ class VLIE(StaticCall, Effects::Any()), public CallInstruction {
         assert(pos < nCallArgs());
         return arg(pos + 2);
     }
+
+    bool isReordered() const { return !argOrderOrig.empty(); }
 
     PirType inferType(const GetType& getType) const override final;
     Effects inferEffects(const GetType& getType) const override final;
