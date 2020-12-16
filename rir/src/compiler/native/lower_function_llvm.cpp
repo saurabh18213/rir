@@ -4693,7 +4693,7 @@ void LowerFunctionLLVM::compile() {
                     builder.SetInsertPoint(hit2);
 
                     llvm::Value* newVal = nullptr;
-                    if (integerValueCase || realValueCase) {
+                    if (integerValueCase ){ //|| realValueCase) {
                         auto hitUnbox = BasicBlock::Create(C, "", fun);
                         auto hitUnbox2 = BasicBlock::Create(C, "", fun);
                         auto fallbackUnbox = BasicBlock::Create(C, "", fun);
