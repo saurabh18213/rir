@@ -4659,8 +4659,8 @@ void LowerFunctionLLVM::compile() {
                     setter = NativeBuiltins::starg;
                 if (!st->isStArg && integerValueCase)
                     setter = NativeBuiltins::stvari;
-                if (!st->isStArg && realValueCase)
-                    setter = NativeBuiltins::stvarr;
+                // if (!st->isStArg && realValueCase)
+                //     setter = NativeBuiltins::stvarr;
                 bool unboxed =
                     setter.llvmSignature->getFunctionParamType(1) != t::SEXP;
 
@@ -4693,7 +4693,7 @@ void LowerFunctionLLVM::compile() {
                     builder.SetInsertPoint(hit2);
 
                     llvm::Value* newVal = nullptr;
-                    if (integerValueCase ){ //|| realValueCase) {
+                    if (integerValueCase || realValueCase) {
                         auto hitUnbox = BasicBlock::Create(C, "", fun);
                         auto hitUnbox2 = BasicBlock::Create(C, "", fun);
                         auto fallbackUnbox = BasicBlock::Create(C, "", fun);
