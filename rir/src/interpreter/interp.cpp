@@ -13,6 +13,7 @@
 #include "runtime/TypeFeedback_inl.h"
 #include "safe_force.h"
 #include "utils/Pool.h"
+#include "../utils/FunctionCallLogs.h"
 
 #include <assert.h>
 #include <deque>
@@ -868,6 +869,12 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
             }
         }
     }
+    
+    if(getenv("PIR_ANALYSIS_LOGS"))                    
+    {
+        FunctionCallLogs::recordCallLog(call, fun);
+    }
+
     bool needsEnv = fun->signature().envCreation ==
                     FunctionSignature::Environment::CallerProvided;
     SEXP result = nullptr;

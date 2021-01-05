@@ -293,11 +293,13 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
     pir::Module* m = new pir::Module;
     pir::StreamLogger logger(debug);
     logger.title("Compiling " + name);
-    // {
-    //     std::stringstream ss;
-    //     ss << name << " " << const_cast<Context&>(assumptions).toI();
-    //     Measuring::countEvent(ss.str());
-    // }
+    
+    if(getenv("PIR_COMPILATION_LOGS"))
+    {
+        std::stringstream ss;
+        ss << name << " " << const_cast<Context&>(assumptions);
+        Measuring::countEvent(ss.str());
+    }
     pir::Compiler cmp(m, logger);
     Measuring::startTimer();
     cmp.compileClosure(what, name, assumptions,

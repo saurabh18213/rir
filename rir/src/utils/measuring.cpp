@@ -125,6 +125,10 @@ void Measuring::addTime(const std::string& name, double time) {
 }
 
 void Measuring::countEvent(const std::string& name, size_t n) {
+    
+    if(getenv("PIR_COMPILATION_LOGS"))
+        std::cerr <<"----->>>>> Compile: "<< name <<"\n";
+
     if (!m)
         return;
     m->countEvent(name, n);
