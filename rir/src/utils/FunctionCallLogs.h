@@ -7,7 +7,7 @@ namespace rir {
 
 class FunctionCallLogs {
   public:
-    static void recordCallLog(CallContext& call, Function* fun);
+    static void recordCallLog(CallContext& call, Function* fun, size_t irID);
 };
 
 } // namespace rir

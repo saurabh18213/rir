@@ -847,6 +847,11 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
     assert(DispatchTable::check(body));
 
     auto table = DispatchTable::unpack(body);
+    // std::stringstream IR;
+    // dispatch(call, table)->body()->disassemble(IR);
+    // std::hash<std::string> str_hash;
+    // size_t irID = str_hash(IR.str());
+
 
     inferCurrentContext(call, table->baseline()->signature().formalNargs(),
                         ctx);
@@ -870,10 +875,10 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
         }
     }
     
-    if(getenv("PIR_ANALYSIS_LOGS"))                    
-    {
-        FunctionCallLogs::recordCallLog(call, fun);
-    }
+    // if(getenv("PIR_ANALYSIS_LOGS"))                    
+    // {
+    //     FunctionCallLogs::recordCallLog(call, fun, irID);
+    // }
 
     bool needsEnv = fun->signature().envCreation ==
                     FunctionSignature::Environment::CallerProvided;

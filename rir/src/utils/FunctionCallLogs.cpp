@@ -8,9 +8,9 @@ namespace rir {
 namespace {
 
 struct LoggingFunction {
-    std::unordered_map<SEXP, int> functionID;
+    std::unordered_map<size_t, int> functionID;
     std::vector<std::string> functionName;
-    std::vector<SEXP> functionCallee;
+    std::vector<size_t> functionIR;
     std::vector<std::unordered_map<unsigned long, std::pair<int, int> >> contextFrequency; 
     
     Context toContext(unsigned long iContext) {
@@ -29,18 +29,17 @@ struct LoggingFunction {
         return nameStr;
     }
 
-    int getFunctionId(CallContext& call) {
-        auto callee = call.callee;
+    int getFunctionId(CallContext& call, size_t irID) {
 
-        if(functionID.find(callee) == functionID.end()) {
+        if(functionID.find(irID) == functionID.end()) {
             int id = functionName.size();
-            functionID[callee] = id;
-            functionCallee.push_back(callee);
+            functionID[irID] = id;
+            functionIR.push_back(irID);
             functionName.push_back(getFunctionName(call));
             contextFrequency.push_back({});
         }
 
-        return functionID[callee];
+        return functionID[irID];
     }
 
     void updateGivenContext(int fId, CallContext& call) {
@@ -68,7 +67,7 @@ struct LoggingFunction {
 
         for(int i = 0; i < (int)functionID.size(); i++) {
             std::cerr << i + 1 <<". Function: "<< functionName[i] <<"\t"
-                    << functionCallee[i] <<"\n\n";
+                    << functionIR[i] <<"\n\n";
 
             for(auto it:contextFrequency[i]) {
                 std::cerr <<"\tContext: "<< it.first <<"\t"<< this->toContext(it.first) <<"\n";
@@ -80,8 +79,8 @@ struct LoggingFunction {
 
     public: 
 
-    void updateFunctionLogs(CallContext& call, Function* fun) {
-        int fId = getFunctionId(call);
+    void updateFunctionLogs(CallContext& call, Function* fun, size_t irID) {
+        int fId = getFunctionId(call, irID);
         // std::cerr <<"Function: "<< getFunctionName(call) <<" "<< call.callee <<"\n";
         updateGivenContext(fId, call);
         updateDispatchedContext(fId, fun);    
@@ -93,10 +92,10 @@ struct LoggingFunction {
 std::unique_ptr<LoggingFunction> functionLogger = std::unique_ptr<LoggingFunction>(
     getenv("PIR_ANALYSIS_LOGS") ? new LoggingFunction : nullptr);
 
-void FunctionCallLogs::recordCallLog(CallContext& call, Function* fun) {
+void FunctionCallLogs::recordCallLog(CallContext& call, Function* fun, size_t irID) {
     if(!functionLogger)
         return;
-    functionLogger->updateFunctionLogs(call, fun);
+    functionLogger->updateFunctionLogs(call, fun, irID);
     return;
 }
 
