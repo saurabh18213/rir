@@ -1,4 +1,5 @@
 #include "interp.h"
+#include "../utils/FunctionCallLogs.h"
 #include "ArgsLazyData.h"
 #include "LazyEnvironment.h"
 #include "R/Funtab.h"
@@ -13,7 +14,6 @@
 #include "runtime/TypeFeedback_inl.h"
 #include "safe_force.h"
 #include "utils/Pool.h"
-#include "../utils/FunctionCallLogs.h"
 
 #include <assert.h>
 #include <deque>
@@ -852,7 +852,25 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
     // std::hash<std::string> str_hash;
     // size_t irID = str_hash(IR.str());
 
+    auto closure1 = call.callee;
+    assert(isValidClosureSEXP(closure1));
+    // auto dt1 = DispatchTable::unpack(BODY(closure1));
+    // auto fun1 = dt1->baseline();
+    // auto body1 = fun1->body();
+    // auto bodyAST = Pool::get(body1->src);
+    auto formals = FORMALS(closure1);
+    std::string fBody = dumpSexp(closure1, ULLONG_MAX);
 
+    for (int i = fBody.length();; i--) {
+        if (fBody[i] == '<') {
+            fBody = fBody.substr(0, i);
+            break;
+        }
+    }
+    
+    std::hash<std::string> str_hash;
+    size_t irID = str_hash(fBody);
+    // std::cerr << "AST: " << fBody << "\nFormals: " << dumpSexp(formals) << "\n";
     inferCurrentContext(call, table->baseline()->signature().formalNargs(),
                         ctx);
     Function* fun = dispatch(call, table);
@@ -874,11 +892,10 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
             }
         }
     }
-    
-    // if(getenv("PIR_ANALYSIS_LOGS"))                    
-    // {
-    //     FunctionCallLogs::recordCallLog(call, fun, irID);
-    // }
+
+    if (getenv("PIR_ANALYSIS_LOGS")) {
+        FunctionCallLogs::recordCallLog(call, fun, irID);
+    }
 
     bool needsEnv = fun->signature().envCreation ==
                     FunctionSignature::Environment::CallerProvided;
@@ -942,21 +959,21 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
         result = rirCallTrampoline(call, fun, env, arglist, ctx);
         UNPROTECT(2);
     } else {
-            // Instead of a SEXP with the argslist we create an
-            // structure with the information needed to recreate
-            // the list lazily if the gnu-r interpreter needs it
-            ArgsLazyData lazyArgs(call.suppliedArgs, call.stackArgs, call.names,
-                                  ctx);
-            if (!arglist)
-                arglist = (SEXP)&lazyArgs;
+        // Instead of a SEXP with the argslist we create an
+        // structure with the information needed to recreate
+        // the list lazily if the gnu-r interpreter needs it
+        ArgsLazyData lazyArgs(call.suppliedArgs, call.stackArgs, call.names,
+                              ctx);
+        if (!arglist)
+            arglist = (SEXP)&lazyArgs;
 
-            // Currently we cannot recreate the original arglist if we
-            // statically reordered arguments. TODO this needs to be fixed
-            // by remembering the original order.
-            if (call.givenContext.includes(Assumption::StaticallyArgmatched))
-                lazyArgs.content.args = nullptr;
-            supplyMissingArgs(call, fun);
-            result = rirCallTrampoline(call, fun, arglist, ctx);
+        // Currently we cannot recreate the original arglist if we
+        // statically reordered arguments. TODO this needs to be fixed
+        // by remembering the original order.
+        if (call.givenContext.includes(Assumption::StaticallyArgmatched))
+            lazyArgs.content.args = nullptr;
+        supplyMissingArgs(call, fun);
+        result = rirCallTrampoline(call, fun, arglist, ctx);
     }
 
     if (bodyPreserved)
@@ -3292,12 +3309,14 @@ SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
         INSTRUCTION(aslogical_) {
             SEXP val = ostack_top(ctx);
             // TODO
-            // 1. currently aslogical_ is used for &&, || only, and this checking
-            //    is to mimic the behavior of builtin &&, ||. Technically asLogical
-            //    is less strict than this.
-            // 2. the error message also doesn't suggest which argument is wrong, or
-            //    which boolean operation it was. To achieve the exact behavior, one
-            //    could potentially compile this check in `ir/Compiler.cpp`
+            // 1. currently aslogical_ is used for &&, || only, and this
+            // checking
+            //    is to mimic the behavior of builtin &&, ||. Technically
+            //    asLogical is less strict than this.
+            // 2. the error message also doesn't suggest which argument is
+            // wrong, or
+            //    which boolean operation it was. To achieve the exact behavior,
+            //    one could potentially compile this check in `ir/Compiler.cpp`
             if (!Rf_isNumber(val)) {
                 SEXP call = getSrcAt(c, pc - 1, ctx);
                 Rf_errorcall(call, "argument has the wrong type for && or ||");
