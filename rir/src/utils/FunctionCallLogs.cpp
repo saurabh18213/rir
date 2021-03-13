@@ -13,7 +13,8 @@ struct LoggingFunction {
     std::vector<std::string> functionName;
     std::vector<size_t> functionIR;
     std::vector<std::unordered_map<unsigned long, std::pair<int, int> >> contextFrequency; 
-    
+    std::vector<std::unordered_map<unsigned long, std::pair<bool, int> >> contextCompilation; 
+
     Context toContext(unsigned long iContext) {
         Context cContext;
         #pragma GCC diagnostic ignored "-Wclass-memaccess"
@@ -38,9 +39,16 @@ struct LoggingFunction {
             functionIR.push_back(irID);
             functionName.push_back(getFunctionName(call));
             contextFrequency.push_back({});
+            contextCompilation.push_back({});
         }
 
         return functionID[irID];
+    }
+
+    void putContextCompilationInfo(CallContext& call, Function* fun, bool changeInPIR, int numPromiseInlined) {
+        int iDFunction = getFunctionId(call, FunctionCallLogs::getASTHash(call.callee));
+        unsigned long icontext = ((Context)(fun->context())).toI();
+        contextCompilation[iDFunction][icontext] = {changeInPIR, numPromiseInlined};
     }
 
     void updateGivenContext(int fId, CallContext& call) {
@@ -63,17 +71,23 @@ struct LoggingFunction {
         contextFrequency[fId][icontext].second++;
     }
 
+
+
     ~LoggingFunction() {
         std::cerr <<"\n\n\n\n----------Function Call Logs----------\nThese logs exclude the first few(mostly 2) calls for every function\n\n\n";
+        std::cerr <<"Function name, AST hash, Context, Given, Dispatched, ChangedPIR, PromisesInlined\n";
 
         for(int i = 0; i < (int)functionID.size(); i++) {
-            std::cerr << i + 1 <<". Function: "<< functionName[i] <<"\t"
-                    << functionIR[i] <<"\n\n";
-
             for(auto it:contextFrequency[i]) {
-                std::cerr <<"\tContext: "<< it.first <<"\t"<< this->toContext(it.first) <<"\n";
-                std::cerr <<"\t\t"<<"Given: "<< it.second.first <<"\n";
-                std::cerr <<"\t\t"<<"Dispatched: "<< it.second.second <<"\n\n";
+                std::cerr << functionName[i] <<", "<< functionIR[i] <<", ";
+                std::cerr << it.first <<", "<< it.second.first <<", ";
+                std::cerr << it.second.second <<", ";
+                auto compileInfo = contextCompilation[i].find(it.first);
+
+                if(compileInfo != contextCompilation[i].end())
+                    std::cerr << compileInfo->second.first <<", "<< compileInfo->second.second <<"\n";
+                else
+                    std::cerr <<"-, -\n";
             }        
         } 
     }
@@ -121,6 +135,10 @@ size_t FunctionCallLogs::getASTHash(SEXP closure) {
     size_t aSTHash = str_hash(fBody);
     (*functionASTHash)[closure] = aSTHash;
     return aSTHash;
+}
+
+void FunctionCallLogs::putCompilationInfo(CallContext& call, Function* fun, bool changeInPIR, int numPromiseInlined) {
+    functionLogger->putContextCompilationInfo(call, fun, changeInPIR, numPromiseInlined);
 }
 
 } // namespace rir
