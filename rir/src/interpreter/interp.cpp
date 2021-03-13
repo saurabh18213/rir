@@ -847,30 +847,6 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
     assert(DispatchTable::check(body));
 
     auto table = DispatchTable::unpack(body);
-    // std::stringstream IR;
-    // dispatch(call, table)->body()->disassemble(IR);
-    // std::hash<std::string> str_hash;
-    // size_t irID = str_hash(IR.str());
-
-    auto closure1 = call.callee;
-    assert(isValidClosureSEXP(closure1));
-    // auto dt1 = DispatchTable::unpack(BODY(closure1));
-    // auto fun1 = dt1->baseline();
-    // auto body1 = fun1->body();
-    // auto bodyAST = Pool::get(body1->src);
-    auto formals = FORMALS(closure1);
-    std::string fBody = dumpSexp(closure1, ULLONG_MAX);
-
-    for (int i = fBody.length();; i--) {
-        if (fBody[i] == '<') {
-            fBody = fBody.substr(0, i);
-            break;
-        }
-    }
-    
-    std::hash<std::string> str_hash;
-    size_t irID = str_hash(fBody);
-    // std::cerr << "AST: " << fBody << "\nFormals: " << dumpSexp(formals) << "\n";
     inferCurrentContext(call, table->baseline()->signature().formalNargs(),
                         ctx);
     Function* fun = dispatch(call, table);
@@ -894,7 +870,7 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
     }
 
     if (getenv("PIR_ANALYSIS_LOGS")) {
-        FunctionCallLogs::recordCallLog(call, fun, irID);
+        FunctionCallLogs::recordCallLog(call, fun);
     }
 
     bool needsEnv = fun->signature().envCreation ==

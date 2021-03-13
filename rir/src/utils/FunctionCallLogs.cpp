@@ -1,5 +1,6 @@
 #include <iostream>
 #include "FunctionCallLogs.h"
+#include "R/Printing.h"
 #include <unordered_map>
 #include <vector>
 
@@ -91,12 +92,35 @@ struct LoggingFunction {
 
 std::unique_ptr<LoggingFunction> functionLogger = std::unique_ptr<LoggingFunction>(
     getenv("PIR_ANALYSIS_LOGS") ? new LoggingFunction : nullptr);
+std::unique_ptr<std::unordered_map<SEXP, size_t> > functionASTHash = 
+    std::unique_ptr<std::unordered_map<SEXP, size_t> >(getenv("PIR_ANALYSIS_LOGS") ? 
+    new std::unordered_map<SEXP, size_t> : nullptr);    
 
-void FunctionCallLogs::recordCallLog(CallContext& call, Function* fun, size_t irID) {
+void FunctionCallLogs::recordCallLog(CallContext& call, Function* fun) {
     if(!functionLogger)
         return;
-    functionLogger->updateFunctionLogs(call, fun, irID);
+    functionLogger->updateFunctionLogs(call, fun, getASTHash(call.callee));
     return;
+}
+
+size_t FunctionCallLogs::getASTHash(SEXP closure) {
+    if((functionASTHash->find(closure)) != (functionASTHash->end()))
+        return (*functionASTHash)[closure];
+
+    assert(isValidClosureSEXP(closure));
+    std::string fBody = dumpSexp(closure, ULLONG_MAX);
+
+    for (int i = fBody.length();; i--) {
+        if (fBody[i] == '<') {
+            fBody = fBody.substr(0, i);
+            break;
+        }
+    }
+    
+    std::hash<std::string> str_hash;
+    size_t aSTHash = str_hash(fBody);
+    (*functionASTHash)[closure] = aSTHash;
+    return aSTHash;
 }
 
 } // namespace rir
