@@ -122,17 +122,19 @@ void FunctionCallLogs::recordCallLog(CallContext& call, Function* fun) {
 size_t FunctionCallLogs::getASTHash(SEXP closure) {
     if((functionASTHash->find(closure)) != (functionASTHash->end()))
         return (*functionASTHash)[closure];
-
     assert(isValidClosureSEXP(closure));
     std::string fBody = dumpSexp(closure, ULLONG_MAX);
-
-    for (int i = fBody.length();; i--) {
+    for (int i = fBody.length(); i >= 0; i--) {
         if (fBody[i] == '<') {
+            if(fBody[i + 1] == 'e') {
+                i--;
+                while(fBody[i] != '<')
+                    i--;
+            }
             fBody = fBody.substr(0, i);
             break;
         }
     }
-    
     std::hash<std::string> str_hash;
     size_t aSTHash = str_hash(fBody);
     (*functionASTHash)[closure] = aSTHash;
