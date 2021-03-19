@@ -876,8 +876,7 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
                     if(str1.str() != str2.str()) 
                         changeInPIR = true;
 
-                    int numPromiseInlined = 0;
-                    FunctionCallLogs::putCompilationInfo(call, fun, changeInPIR, numPromiseInlined);    
+                    FunctionCallLogs::putCompilationInfo(call, fun, changeInPIR);    
                 }
             }
         }

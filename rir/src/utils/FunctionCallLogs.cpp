@@ -14,6 +14,7 @@ struct LoggingFunction {
     std::vector<size_t> functionIR;
     std::vector<std::unordered_map<unsigned long, std::pair<int, int> >> contextFrequency; 
     std::vector<std::unordered_map<unsigned long, std::pair<bool, int> >> contextCompilation; 
+    int numPromisesInlined = 0;
 
     Context toContext(unsigned long iContext) {
         Context cContext;
@@ -45,10 +46,11 @@ struct LoggingFunction {
         return functionID[irID];
     }
 
-    void putContextCompilationInfo(CallContext& call, Function* fun, bool changeInPIR, int numPromiseInlined) {
+    void putContextCompilationInfo(CallContext& call, Function* fun, bool changeInPIR) {
         int iDFunction = getFunctionId(call, FunctionCallLogs::getASTHash(call.callee));
         unsigned long icontext = ((Context)(fun->context())).toI();
-        contextCompilation[iDFunction][icontext] = {changeInPIR, numPromiseInlined};
+        contextCompilation[iDFunction][icontext] = {changeInPIR, numPromisesInlined};
+        numPromisesInlined = 0;
     }
 
     void updateGivenContext(int fId, CallContext& call) {
@@ -75,12 +77,12 @@ struct LoggingFunction {
 
     ~LoggingFunction() {
         std::cerr <<"\n\n\n\n----------Function Call Logs----------\nThese logs exclude the first few(mostly 2) calls for every function\n\n\n";
-        std::cerr <<"Function name, AST hash, Context, Given, Dispatched, ChangedPIR, PromisesInlined\n";
+        std::cerr <<"Function name, AST hash, Context, ContextID, Given, Dispatched, ChangedPIR, PromisesInlined\n";
 
         for(int i = 0; i < (int)functionID.size(); i++) {
             for(auto it:contextFrequency[i]) {
-                std::cerr << functionName[i] <<", "<< functionIR[i] <<", ";
-                std::cerr << it.first <<", "<< it.second.first <<", ";
+                std::cerr << functionName[i] <<", "<< functionIR[i] <<", \"";
+                std::cerr << toContext(it.first) << "\", "<< it.first <<", "<< it.second.first <<", ";
                 std::cerr << it.second.second <<", ";
                 auto compileInfo = contextCompilation[i].find(it.first);
 
@@ -137,8 +139,12 @@ size_t FunctionCallLogs::getASTHash(SEXP closure) {
     return aSTHash;
 }
 
-void FunctionCallLogs::putCompilationInfo(CallContext& call, Function* fun, bool changeInPIR, int numPromiseInlined) {
-    functionLogger->putContextCompilationInfo(call, fun, changeInPIR, numPromiseInlined);
+void FunctionCallLogs::putCompilationInfo(CallContext& call, Function* fun, bool changeInPIR) {
+    functionLogger->putContextCompilationInfo(call, fun, changeInPIR);
+}
+
+void FunctionCallLogs::updatePromiseInfo() {
+    functionLogger->numPromisesInlined++;
 }
 
 } // namespace rir
